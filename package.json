@@ -1,0 +1,19 @@
+{
+  "name": "sharp-cropping-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Web demo of Sharp cropping strategies",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.1",
+    "multer": "^1.4.5-lts.1",
+    "sharp": "^0.33.5"
+  }
+}
+

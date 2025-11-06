@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sharp Cropping Strategies Demo</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="container">
+      <h1>Sharp Cropping Strategies</h1>
+      <p class="subtitle">Upload an image, choose dimensions, and compare crop strategies.</p>
+
+      <form id="upload-form">
+        <div class="form-row">
+          <label for="image">Image</label>
+          <input type="file" id="image" name="image" accept="image/*" required>
+        </div>
+        <div class="form-row">
+          <label for="width">Width</label>
+          <input type="number" id="width" name="width" min="1" step="1" value="400" required>
+        </div>
+        <div class="form-row">
+          <label for="height">Height</label>
+          <input type="number" id="height" name="height" min="1" step="1" value="300" required>
+        </div>
+        <div class="form-row inline">
+          <button type="submit">Upload & Preview</button>
+          <button id="refresh" type="button" disabled>Refresh Previews</button>
+        </div>
+      </form>
+
+      <div id="grid"></div>
+    </div>
+    <script src="/script.js"></script>
+  </body>
+</html>
+
+
