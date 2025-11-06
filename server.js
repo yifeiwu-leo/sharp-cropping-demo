@@ -43,40 +43,33 @@ function parseIntOrDefault(value, fallback) {
 	return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
+function getFit(strategyParam) {
+	const s = String(strategyParam || '').toLowerCase();
+	switch (s) {
+		case 'cover':
+			return sharp.fit.cover;
+		case 'contain':
+			return sharp.fit.contain;
+		case 'fill':
+			return sharp.fit.fill;
+		case 'inside':
+			return sharp.fit.inside;
+		case 'outside':
+			return sharp.fit.outside;
+		default:
+			return sharp.fit.cover;
+	}
+}
+
 function getPosition(strategyParam) {
 	const s = String(strategyParam || '').toLowerCase();
 	switch (s) {
-		case 'center':
-		case 'centre':
-			return 'center';
-		case 'north':
-		case 'top':
-			return 'north';
-		case 'south':
-		case 'bottom':
-			return 'south';
-		case 'east':
-		case 'right':
-			return 'east';
-		case 'west':
-		case 'left':
-			return 'west';
-		case 'northeast':
-		case 'ne':
-			return 'northeast';
-		case 'northwest':
-		case 'nw':
-			return 'northwest';
-		case 'southeast':
-		case 'se':
-			return 'southeast';
-		case 'southwest':
-		case 'sw':
-			return 'southwest';
 		case 'entropy':
 			return sharp.strategy.entropy;
 		case 'attention':
 			return sharp.strategy.attention;
+		case 'center':
+		case 'centre':
 		default:
 			return 'center';
 	}
@@ -110,12 +103,24 @@ app.get('/image/:id/:strategy', async (req, res) => {
 		const imageBuffer = Buffer.from(await response.arrayBuffer());
 
 		let pipeline = sharp(imageBuffer).rotate();
-		pipeline = pipeline.resize({
+		
+		// Parse strategy to extract fit and position
+		const strategyParts = strategy.split('-');
+		const fitStrategy = strategyParts[0];
+		const positionStrategy = strategyParts[1] || 'center';
+		
+		const resizeOptions = {
 			width,
 			height,
-			fit: sharp.fit.cover,
-			position: getPosition(strategy)
-		});
+			fit: getFit(fitStrategy)
+		};
+		
+		// Only add position for cover fit (it's used for cropping)
+		if (getFit(fitStrategy) === sharp.fit.cover) {
+			resizeOptions.position = getPosition(positionStrategy);
+		}
+		
+		pipeline = pipeline.resize(resizeOptions);
 
 		if (format === 'png') {
 			res.type('png');
@@ -136,17 +141,13 @@ app.get('/image/:id/:strategy', async (req, res) => {
 
 app.get('/strategies', (_req, res) => {
 	res.json([
-		{ key: 'center', label: 'Center' },
-		{ key: 'entropy', label: 'Entropy' },
-		{ key: 'attention', label: 'Attention' },
-		{ key: 'north', label: 'North / Top' },
-		{ key: 'south', label: 'South / Bottom' },
-		{ key: 'east', label: 'East / Right' },
-		{ key: 'west', label: 'West / Left' },
-		{ key: 'northeast', label: 'Northeast' },
-		{ key: 'northwest', label: 'Northwest' },
-		{ key: 'southeast', label: 'Southeast' },
-		{ key: 'southwest', label: 'Southwest' }
+		{ key: 'cover', label: 'Cover (crop to fill)' },
+		{ key: 'cover-entropy', label: 'Cover with Entropy' },
+		{ key: 'cover-attention', label: 'Cover with Attention' },
+		{ key: 'contain', label: 'Contain (fit within)' },
+		{ key: 'fill', label: 'Fill (stretch)' },
+		{ key: 'inside', label: 'Inside (fit within, preserve aspect)' },
+		{ key: 'outside', label: 'Outside (cover, preserve aspect)' }
 	]);
 });
 
