@@ -9,7 +9,7 @@ const sharp = require('sharp');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsDir = '/tmp/uploads';
 if (!fs.existsSync(uploadsDir)) {
 	fs.mkdirSync(uploadsDir, { recursive: true });
 }
