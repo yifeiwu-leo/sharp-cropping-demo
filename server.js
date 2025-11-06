@@ -1,43 +1,39 @@
 'use strict';
 
 const path = require('path');
-const fs = require('fs');
 const express = require('express');
 const multer = require('multer');
 const sharp = require('sharp');
+const { put, head } = require('@vercel/blob');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const uploadsDir = '/tmp/uploads';
-if (!fs.existsSync(uploadsDir)) {
-	fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
-const storage = multer.diskStorage({
-	destination: function (_req, _file, cb) {
-		cb(null, uploadsDir);
-	},
-	filename: function (_req, file, cb) {
-		const timestamp = Date.now();
-		const random = Math.random().toString(36).slice(2, 8);
-		const ext = path.extname(file.originalname) || '.jpg';
-		cb(null, `${timestamp}-${random}${ext}`);
-	}
-});
-const upload = multer({ storage });
+const upload = multer({ storage: multer.memoryStorage() });
 
 app.post('/upload', upload.single('image'), async (req, res) => {
 	try {
 		if (!req.file) {
 			return res.status(400).json({ error: 'No file uploaded' });
 		}
+		
+		const timestamp = Date.now();
+		const random = Math.random().toString(36).slice(2, 8);
+		const ext = path.extname(req.file.originalname) || '.jpg';
+		const filename = `${timestamp}-${random}${ext}`;
+		
+		const blob = await put(filename, req.file.buffer, {
+			access: 'public',
+			contentType: req.file.mimetype || 'image/jpeg'
+		});
+		
 		return res.json({
-			id: req.file.filename
+			id: blob.pathname || filename
 		});
 	} catch (err) {
+		console.error('Upload error:', err);
 		return res.status(500).json({ error: 'Upload failed' });
 	}
 });
@@ -93,12 +89,27 @@ app.get('/image/:id/:strategy', async (req, res) => {
 		const height = parseIntOrDefault(req.query.h, 300);
 		const format = (req.query.format || 'jpeg').toString().toLowerCase();
 
-		const sourcePath = path.join(uploadsDir, id);
-		if (!fs.existsSync(sourcePath)) {
+		// Get blob metadata to retrieve the public URL
+		let blobInfo;
+		try {
+			blobInfo = await head(id);
+		} catch (err) {
 			return res.status(404).send('Not found');
 		}
+		
+		if (!blobInfo || !blobInfo.url) {
+			return res.status(404).send('Not found');
+		}
+		
+		// Fetch the blob from its public URL
+		const response = await fetch(blobInfo.url);
+		if (!response.ok) {
+			return res.status(404).send('Not found');
+		}
+		
+		const imageBuffer = Buffer.from(await response.arrayBuffer());
 
-		let pipeline = sharp(sourcePath).rotate();
+		let pipeline = sharp(imageBuffer).rotate();
 		pipeline = pipeline.resize({
 			width,
 			height,
@@ -117,7 +128,8 @@ app.get('/image/:id/:strategy', async (req, res) => {
 
 		res.type('jpeg');
 		return pipeline.jpeg({ quality: 90, mozjpeg: true }).toBuffer().then(buf => res.end(buf));
-	} catch (_err) {
+	} catch (err) {
+		console.error('Image processing error:', err);
 		return res.status(500).send('Processing failed');
 	}
 });
