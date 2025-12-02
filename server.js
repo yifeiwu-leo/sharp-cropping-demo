@@ -123,7 +123,7 @@ app.get('/image/:id/:strategy', async (req, res) => {
 		pipeline = pipeline.resize(resizeOptions);
 
 		res.type('png');
-		return pipeline.png({ compressionLevel: 6 }).toBuffer().then(buf => res.end(buf));
+		return pipeline.png({ compressionLevel: 6, adaptiveFiltering: true }).toBuffer().then(buf => res.end(buf));
 	} catch (err) {
 		console.error('Image processing error:', err);
 		return res.status(500).send('Processing failed');
