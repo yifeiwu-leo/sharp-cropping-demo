@@ -122,17 +122,8 @@ app.get('/image/:id/:strategy', async (req, res) => {
 		
 		pipeline = pipeline.resize(resizeOptions);
 
-		if (format === 'png') {
-			res.type('png');
-			return pipeline.png({ compressionLevel: 9 }).toBuffer().then(buf => res.end(buf));
-		}
-		if (format === 'webp') {
-			res.type('webp');
-			return pipeline.webp({ quality: 90 }).toBuffer().then(buf => res.end(buf));
-		}
-
-		res.type('jpeg');
-		return pipeline.jpeg({ quality: 90, mozjpeg: true }).toBuffer().then(buf => res.end(buf));
+		res.type('png');
+		return pipeline.png({ compressionLevel: 6 }).toBuffer().then(buf => res.end(buf));
 	} catch (err) {
 		console.error('Image processing error:', err);
 		return res.status(500).send('Processing failed');
