@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	const video = document.getElementById('videoPlayer');
 	const canvas = document.getElementById('canvas');
 	const form = document.getElementById('uploadForm');
-	const presignedUrlInput = document.getElementById('presignedUrl');
+	const presignedDataInput = document.getElementById('presignedData');
 	const currentTimeDisplay = document.getElementById('currentTime');
 	const statusMessage = document.getElementById('status');
 	const submitBtn = document.getElementById('submitBtn');
@@ -18,18 +18,29 @@ document.addEventListener('DOMContentLoaded', () => {
 	form.addEventListener('submit', async (e) => {
 		e.preventDefault();
 		
-		const presignedUrl = presignedUrlInput.value.trim();
+		const presignedDataStr = presignedDataInput.value.trim();
 		
-		if (!presignedUrl) {
-			showStatus('Please enter a presigned URL', 'error');
+		if (!presignedDataStr) {
+			showStatus('Please enter presigned POST data', 'error');
 			return;
 		}
 
-		// Validate URL format
+		// Parse the presigned data
+		let presignedData;
 		try {
-			new URL(presignedUrl);
+			presignedData = JSON.parse(presignedDataStr);
+			
+			// Handle nested structure (data.uploadImage format)
+			if (presignedData.data && presignedData.data.uploadImage) {
+				presignedData = presignedData.data.uploadImage;
+			}
+			
+			// Validate required fields
+			if (!presignedData.url || !presignedData.fields) {
+				throw new Error('Missing required fields: url and fields');
+			}
 		} catch (err) {
-			showStatus('Invalid URL format', 'error');
+			showStatus(`Invalid JSON: ${err.message}`, 'error');
 			return;
 		}
 
@@ -43,23 +54,72 @@ document.addEventListener('DOMContentLoaded', () => {
 			// Capture the current frame from the video
 			const frameBlob = await captureFrame();
 			
-			showStatus('Uploading to presigned URL...', 'info');
+			showStatus('Uploading to S3...', 'info');
 
-			// Create FormData for POST upload
+			// Parse fields (it might be a string or object)
+			let fields;
+			if (typeof presignedData.fields === 'string') {
+				fields = JSON.parse(presignedData.fields);
+			} else {
+				fields = presignedData.fields;
+			}
+
+			console.log('Presigned URL:', presignedData.url);
+			console.log('Fields:', fields);
+
+			// Create FormData with all the fields
 			const formData = new FormData();
+			
+			// Add all the presigned fields first (order matters for S3)
+			// Add fields in the order they appear in the policy
+			const fieldOrder = [
+				'Content-Type',
+				'x-amz-meta-upload_type',
+				'bucket',
+				'X-Amz-Algorithm',
+				'X-Amz-Credential',
+				'X-Amz-Date',
+				'X-Amz-Security-Token',
+				'key',
+				'Policy',
+				'X-Amz-Signature'
+			];
+			
+			// Add fields in order if they exist
+			for (const fieldName of fieldOrder) {
+				if (fields[fieldName] !== undefined) {
+					formData.append(fieldName, fields[fieldName]);
+				}
+			}
+			
+			// Add any remaining fields not in the order list
+			for (const [key, value] of Object.entries(fields)) {
+				if (!fieldOrder.includes(key)) {
+					formData.append(key, value);
+				}
+			}
+			
+			// Add the file last (MUST be last for S3)
 			formData.append('file', frameBlob, 'frame.png');
 
+			console.log('Uploading to:', presignedData.url);
+
 			// Upload to presigned URL using POST
-			const uploadResponse = await fetch(presignedUrl, {
+			const uploadResponse = await fetch(presignedData.url, {
 				method: 'POST',
 				body: formData
 			});
 
+			console.log('Upload response status:', uploadResponse.status);
+
 			if (!uploadResponse.ok) {
+				const responseText = await uploadResponse.text();
+				console.error('Upload error response:', responseText);
 				throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
 			}
 
-			showStatus(`✓ Frame captured at ${video.currentTime.toFixed(2)}s and uploaded successfully!`, 'success');
+			const uploadId = presignedData.uploadId || 'unknown';
+			showStatus(`✓ Frame captured at ${video.currentTime.toFixed(2)}s and uploaded successfully! Upload ID: ${uploadId}`, 'success');
 			
 		} catch (err) {
 			console.error('Upload error:', err);

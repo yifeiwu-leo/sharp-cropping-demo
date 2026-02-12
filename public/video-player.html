@@ -26,14 +26,14 @@
 			<h2>📸 Capture Current Frame</h2>
 			<form id="uploadForm">
 				<div class="form-group">
-					<label for="presignedUrl">Presigned URL:</label>
-					<input 
-						type="text" 
-						id="presignedUrl" 
-						name="presignedUrl" 
-						placeholder="https://example.blob.core.windows.net/..." 
+					<label for="presignedData">Presigned POST Data (JSON):</label>
+					<textarea 
+						id="presignedData" 
+						name="presignedData" 
+						placeholder='{"url": "https://...", "fields": "{...}"}'
+						rows="8"
 						required
-					>
+					></textarea>
 				</div>
 				<div class="current-time">
 					Current time: <span id="currentTime">0.00</span>s
