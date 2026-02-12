@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Video Player - Big Buck Bunny</title>
+	<link rel="stylesheet" href="video-player.css">
+</head>
+<body>
+	<div class="container">
+		<div class="header">
+			<h1>🎬 Video Player</h1>
+			<p>Big Buck Bunny - Sample Video</p>
+		</div>
+		<div class="video-wrapper">
+			<video id="videoPlayer" controls autoplay muted crossorigin="anonymous">
+				<source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+				Your browser does not support the video tag.
+			</video>
+			<div class="controls-info">
+				Use the video controls to play, pause, adjust volume, and toggle fullscreen.
+			</div>
+		</div>
+		
+		<div class="upload-section">
+			<h2>📸 Capture Current Frame</h2>
+			<form id="uploadForm">
+				<div class="form-group">
+					<label for="presignedUrl">Presigned URL:</label>
+					<input 
+						type="text" 
+						id="presignedUrl" 
+						name="presignedUrl" 
+						placeholder="https://example.blob.core.windows.net/..." 
+						required
+					>
+				</div>
+				<div class="current-time">
+					Current time: <span id="currentTime">0.00</span>s
+				</div>
+				<button type="submit" id="submitBtn">
+					<span class="btn-text">Capture & Upload Frame</span>
+					<span class="btn-spinner" style="display: none;">⏳ Uploading...</span>
+				</button>
+			</form>
+			<div id="status" class="status-message"></div>
+		</div>
+	</div>
+	
+	<canvas id="canvas" style="display: none;"></canvas>
+	<script src="video-player.js"></script>
+</body>
+</html>
+

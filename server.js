@@ -265,6 +265,10 @@ app.post('/video/frame', async (req, res) => {
 	}
 });
 
+app.get('/video-player', (req, res) => {
+	res.sendFile(path.join(__dirname, 'public', 'video-player.html'));
+});
+
 app.listen(PORT, () => {
 	console.log(`Sharp cropping demo running at http://localhost:${PORT}`);
 });
